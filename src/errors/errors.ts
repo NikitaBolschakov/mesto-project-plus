@@ -6,7 +6,6 @@ class HandlerError extends Error {
   constructor(status: number, message: string) {
     super(message);
     this.statusCode = status;
-    this.message = message;
   }
 
   static badRequest(message: string) {
