@@ -55,14 +55,15 @@ export const createUser = async (
   try {
     const { name, about, avatar } = req.body;
 
-    if (!name || !about || !avatar) {
-      return next(HandlerError.badRequest(ERROR_MESSAGE_400));
-    }
-
     const newUser = await User.create({ name, about, avatar });
-    return res.status(200).send(newUser);
+
+    return res.status(201).send(newUser);
   } catch (error) {
-    next(HandlerError.serverError(ERROR_MESSAGE_500));
+    if (error instanceof mongoose.Error.ValidationError) {
+      next(HandlerError.badRequest(ERROR_MESSAGE_400));
+    } else {
+      next(HandlerError.serverError(ERROR_MESSAGE_500));
+    }
   }
 };
 
@@ -81,11 +82,6 @@ export const patchUser = async (
   try {
     const { name, about } = req.body;
     const userId = req.body._id; //кто отправляет запрос, тому и менять данные. поэтому _id из req.body
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return next(HandlerError.notFound(ERROR_MESSAGE_404));
-    }
 
     if (!name || !about) {
       return next(HandlerError.badRequest(ERROR_MESSAGE_400));
@@ -99,6 +95,11 @@ export const patchUser = async (
         runValidators: true,
       }
     );
+
+    if (!updateUser) {
+      return next(HandlerError.notFound(ERROR_MESSAGE_404));
+    }
+
     return res.status(200).send(updateUser);
   } catch (error) {
     next(HandlerError.serverError(ERROR_MESSAGE_500));

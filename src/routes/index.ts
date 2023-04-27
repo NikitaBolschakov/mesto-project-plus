@@ -6,5 +6,8 @@ const router = Router();
 
 router.use('/users', userRouter);
 router.use('/cards', cardRouter);
+router.use('*', (req, res) => {
+  res.status(404).send('Ohh you are lost, read the API documentation to find your way back home.');
+})
 
 export default router;
