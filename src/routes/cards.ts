@@ -17,6 +17,6 @@ cardRouter.delete('/:cardId', deleteCard); // удаляет карточку
 
 cardRouter.put('/:cardId/likes', putLike); // добавляет лайк карточке
 
-cardRouter.delete('/:cardId/likes', deleteLike); // добавляет лайк карточке
+cardRouter.delete('/:cardId/likes', deleteLike); // удаляет лайк карточке
 
 export default cardRouter;
