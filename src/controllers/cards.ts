@@ -1,13 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
-import mongoose from 'mongoose';
+import { catchError } from '../utils/catchError';
 import { RequestCastom } from '../types';
 import Card from '../models/card';
-import HandlerError from '../errors/errors';
-import {
-  ERROR_MESSAGE_400,
-  ERROR_MESSAGE_404,
-  ERROR_MESSAGE_500,
-} from '../constants/constants';
+import { STATUS_201, STATUS_200 } from '../constants/constants';
 
 // найти все карточки
 export const getCards = async (
@@ -17,9 +12,9 @@ export const getCards = async (
 ) => {
   try {
     const cards = await Card.find({}).populate(['owner', 'likes']);
-    return res.status(200).send(cards);
+    return res.status(STATUS_200).send(cards);
   } catch (error) {
-    next(HandlerError.serverError(ERROR_MESSAGE_500));
+    catchError(error, res);
   }
 };
 
@@ -32,15 +27,10 @@ export const createCard = async (
   try {
     const { name, link } = req.body;
     const owner = req.user?._id;
-
     const newCard = await Card.create({ name, link, owner });
-    return res.status(201).send(newCard);
+    return res.status(STATUS_201).send(newCard);
   } catch (error) {
-    if (error instanceof mongoose.Error.ValidationError) {
-      next(HandlerError.badRequest(ERROR_MESSAGE_400));
-    } else {
-      next(HandlerError.serverError(ERROR_MESSAGE_500));
-    }
+    catchError(error, res);
   }
 };
 
@@ -52,18 +42,10 @@ export const deleteCard = async (
 ) => {
   try {
     const { cardId } = req.params;
-
-    const cardForDelete = await Card.findByIdAndDelete(cardId);
-
-    if (!cardForDelete) {
-      return next(HandlerError.notFound(ERROR_MESSAGE_404));
-    }
-
-    return res
-      .status(200)
-      .send({ cardForDelete, message: 'Карточка успешно удалена' });
+    const cardForDelete = await Card.findByIdAndDelete(cardId).orFail();
+    return res.status(STATUS_200).send(cardForDelete);
   } catch (error) {
-    next(HandlerError.serverError(ERROR_MESSAGE_500));
+    catchError(error, res);
   }
 };
 
@@ -76,31 +58,14 @@ export const putLike = async (
   try {
     const { cardId } = req.params;
     const ownerId = req.user?._id; //на этом этапе только автор может ставить лайк своей карточке
-
-    if (!cardId) {
-      return next(HandlerError.badRequest(ERROR_MESSAGE_400));
-    }
-
     const currentCard = await Card.findByIdAndUpdate(
       cardId,
       { $addToSet: { likes: ownerId } },
       { new: true }
-    );
-
-    //передан несуществующий id карточки
-    if (!currentCard) {
-      return next(HandlerError.notFound(ERROR_MESSAGE_404));
-    }
-
-    return res
-      .status(200)
-      .send({ currentCard, message: 'Лайк поставлен успешно' });
+    ).orFail();
+    return res.status(STATUS_200).send(currentCard);
   } catch (error) {
-    if (error instanceof mongoose.Error.CastError) {
-      next(HandlerError.badRequest(ERROR_MESSAGE_400));
-    } else {
-      next(HandlerError.serverError(ERROR_MESSAGE_500));
-    }
+    catchError(error, res);
   }
 };
 
@@ -113,26 +78,13 @@ export const deleteLike = async (
   try {
     const { cardId } = req.params;
     const ownerId = req.user?._id; //на этом этапе только автор может ставить лайк своей карточке
-
     const currentCard = await Card.findByIdAndUpdate(
       cardId,
       { $pull: { likes: ownerId } },
       { new: true }
-    );
-
-    //передан несуществующий id карточки
-    if (!currentCard) {
-      return next(HandlerError.notFound(ERROR_MESSAGE_404));
-    }
-
-    return res
-      .status(200)
-      .send({ currentCard, message: 'Лайк удален успешно' });
+    ).orFail();
+    return res.status(STATUS_200).send(currentCard);
   } catch (error) {
-    if (error instanceof mongoose.Error.CastError) {
-      next(HandlerError.badRequest(ERROR_MESSAGE_400));
-    } else {
-      next(HandlerError.serverError(ERROR_MESSAGE_500));
-    }
+    catchError(error, res);
   }
 };

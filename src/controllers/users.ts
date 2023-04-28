@@ -1,12 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import mongoose from 'mongoose';
-import {
-  ERROR_MESSAGE_400,
-  ERROR_MESSAGE_404,
-  ERROR_MESSAGE_500,
-} from '../constants/constants';
+import { STATUS_200, STATUS_201 } from '../constants/constants';
 import User from '../models/user';
-import HandlerError from '../errors/errors';
+import { catchError } from '../utils/catchError';
 
 // найти всех пользователей
 export const getUsers = async (
@@ -16,9 +11,9 @@ export const getUsers = async (
 ) => {
   try {
     const users = await User.find({});
-    return res.status(200).send(users);
+    return res.status(STATUS_200).send(users);
   } catch (error) {
-    next(HandlerError.serverError(ERROR_MESSAGE_500));
+    catchError(error, res);
   }
 };
 
@@ -30,19 +25,10 @@ export const getUser = async (
 ) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return next(HandlerError.notFound(ERROR_MESSAGE_404));
-    }
-
-    return res.status(200).send(user);
+    const user = await User.findById(userId).orFail();
+    return res.status(STATUS_200).send(user);
   } catch (error) {
-    if (error instanceof mongoose.Error.CastError) {
-      next(HandlerError.badRequest(ERROR_MESSAGE_400));
-    } else {
-      next(HandlerError.serverError(ERROR_MESSAGE_500));
-    }
+    catchError(error, res);
   }
 };
 
@@ -54,16 +40,10 @@ export const createUser = async (
 ) => {
   try {
     const { name, about, avatar } = req.body;
-
     const newUser = await User.create({ name, about, avatar });
-
-    return res.status(201).send(newUser);
+    return res.status(STATUS_201).send(newUser);
   } catch (error) {
-    if (error instanceof mongoose.Error.ValidationError) {
-      next(HandlerError.badRequest(ERROR_MESSAGE_400));
-    } else {
-      next(HandlerError.serverError(ERROR_MESSAGE_500));
-    }
+    catchError(error, res);
   }
 };
 
@@ -82,32 +62,18 @@ export const patchUser = async (
   try {
     const { name, about } = req.body;
     const userId = req.body._id; //кто отправляет запрос, тому и менять данные. поэтому _id из req.body
-
-    if (!name || !about) {
-      return next(HandlerError.badRequest(ERROR_MESSAGE_400));
-    }
-
     const updateUser = await User.findByIdAndUpdate(
       userId,
       { name, about },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
-
-    if (!updateUser) {
-      return next(HandlerError.notFound(ERROR_MESSAGE_404));
-    }
-
-    return res.status(200).send(updateUser);
+      { new: true, runValidators: true }
+    ).orFail();
+    return res.status(STATUS_200).send(updateUser);
   } catch (error) {
-    next(HandlerError.serverError(ERROR_MESSAGE_500));
+    catchError(error, res);
   }
 };
 
 // обновить аватар
-
 /* {
   "_id": "643f360ac75a4c8c4b97aad0",
   "avatar": "https://anotheravatar"
@@ -121,26 +87,13 @@ export const patchAvatar = async (
   try {
     const { avatar } = req.body;
     const userId = req.body._id;
-    const user = await User.findById(userId);
-
-    if (!user) {
-      return next(HandlerError.notFound(ERROR_MESSAGE_404));
-    }
-
-    if (!avatar) {
-      return next(HandlerError.badRequest(ERROR_MESSAGE_400));
-    }
-
     const updateAvatar = await User.findByIdAndUpdate(
       userId,
       { avatar },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
-    return res.status(200).send(updateAvatar);
+      { new: true, runValidators: true }
+    ).orFail();
+    return res.status(STATUS_200).send(updateAvatar);
   } catch (error) {
-    next(HandlerError.serverError(ERROR_MESSAGE_500));
+    catchError(error, res);
   }
 };
