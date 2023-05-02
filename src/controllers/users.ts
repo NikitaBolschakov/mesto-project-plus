@@ -1,7 +1,12 @@
 import { NextFunction, Request, Response } from 'express';
-import { STATUS_200, STATUS_201 } from '../constants/constants';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken'
+import HandlerError from '../errors/errors';
+import { STATUS_200, STATUS_201, ERROR_MESSAGE_401, ERROR_MESSAGE_409 } from '../constants/constants';
 import User from '../models/user';
 import { catchError } from '../utils/catchError';
+import { RequestCastom } from '../types';
+
 
 // найти всех пользователей
 export const getUsers = async (
@@ -32,16 +37,39 @@ export const getUser = async (
   }
 };
 
-// создать пользователя
+// получить данные об авторизованном пользователе
+export const getUserData = async (
+  req: RequestCastom,
+  res: Response,
+  next: NextFunction
+) => {
+  const userId = req.user?._id;
+
+  try {
+    const user = await User.findById(userId).orFail();
+    return res.status(STATUS_200).send(user);
+  } catch (error) {
+    catchError(error, res);
+  }
+};
+
+// регистрация пользователя
 export const createUser = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { name, about, avatar } = req.body;
-    const newUser = await User.create({ name, about, avatar });
-    return res.status(STATUS_201).send(newUser);
+    const { email, password, name, about, avatar } = req.body;
+    const checkEmail = await User.findOne({ email });
+
+    if (checkEmail) {
+      next(HandlerError.auth(ERROR_MESSAGE_409));
+    } else {
+      const hash = await bcrypt.hash(password, 10);
+      const newUser = await User.create({ email, password: hash, name, about, avatar });
+      return res.status(STATUS_201).send(newUser);
+    }
   } catch (error) {
     catchError(error, res);
   }
@@ -55,13 +83,13 @@ export const createUser = async (
 }*/
 
 export const patchUser = async (
-  req: Request,
+  req: RequestCastom,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { name, about } = req.body;
-    const userId = req.body._id; //кто отправляет запрос, тому и менять данные. поэтому _id из req.body
+    const userId = req.user?._id; //кто отправляет запрос, тому и менять данные. поэтому _id из req.body
     const updateUser = await User.findByIdAndUpdate(
       userId,
       { name, about },
@@ -80,13 +108,13 @@ export const patchUser = async (
 } */
 
 export const patchAvatar = async (
-  req: Request,
+  req: RequestCastom,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { avatar } = req.body;
-    const userId = req.body._id;
+    const userId = req.user?._id;
     const updateAvatar = await User.findByIdAndUpdate(
       userId,
       { avatar },
@@ -97,3 +125,16 @@ export const patchAvatar = async (
     catchError(error, res);
   }
 };
+
+export const login = async (req: Request, res: Response, next: NextFunction) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findUserByCredentials(email, password);
+    return res.send({
+      token: jwt.sign({ _id: user._id }, 'super-strong-secret', { expiresIn: '7d' }),
+    });
+  } catch {
+    next(HandlerError.auth(ERROR_MESSAGE_401))
+  }
+}

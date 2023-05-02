@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { createCardValidation, getCardValidation } from '../validation/cards';
 import {
   getCards,
   createCard,
@@ -11,9 +12,9 @@ const cardRouter = Router();
 
 cardRouter.get('/', getCards); // возвращает все карточки
 
-cardRouter.post('/', createCard); // создает карточку
+cardRouter.post('/', createCardValidation, createCard); // создает карточку
 
-cardRouter.delete('/:cardId', deleteCard); // удаляет карточку
+cardRouter.delete('/:cardId', getCardValidation, deleteCard); // удаляет карточку
 
 cardRouter.put('/:cardId/likes', putLike); // добавляет лайк карточке
 

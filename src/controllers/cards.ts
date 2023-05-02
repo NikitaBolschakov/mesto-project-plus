@@ -2,7 +2,13 @@ import { NextFunction, Request, Response } from 'express';
 import { catchError } from '../utils/catchError';
 import { RequestCastom } from '../types';
 import Card from '../models/card';
-import { STATUS_201, STATUS_200 } from '../constants/constants';
+import {
+  STATUS_201,
+  STATUS_200,
+  STATUS_403,
+  ERROR_MESSAGE_403,
+  MESSAGE_SUCCESS_DELETE,
+} from '../constants/constants';
 
 // найти все карточки
 export const getCards = async (
@@ -36,14 +42,23 @@ export const createCard = async (
 
 // удалить по индентификатору
 export const deleteCard = async (
-  req: Request,
+  req: RequestCastom,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { cardId } = req.params;
-    const cardForDelete = await Card.findByIdAndDelete(cardId).orFail();
-    return res.status(STATUS_200).send(cardForDelete);
+    const cardForDelete = await Card.findById(cardId).orFail();
+
+    const { owner } = cardForDelete;
+    const userId = req.user?._id;
+
+    if (owner.toString() !== userId) {
+      return res.status(STATUS_403).send(ERROR_MESSAGE_403);
+    } else {
+      await Card.findByIdAndDelete(cardId);
+      return res.status(STATUS_200).send(MESSAGE_SUCCESS_DELETE);
+    }
   } catch (error) {
     catchError(error, res);
   }
@@ -57,7 +72,7 @@ export const putLike = async (
 ) => {
   try {
     const { cardId } = req.params;
-    const ownerId = req.user?._id; //на этом этапе только автор может ставить лайк своей карточке
+    const ownerId = req.user?._id;
     const currentCard = await Card.findByIdAndUpdate(
       cardId,
       { $addToSet: { likes: ownerId } },
@@ -77,7 +92,7 @@ export const deleteLike = async (
 ) => {
   try {
     const { cardId } = req.params;
-    const ownerId = req.user?._id; //на этом этапе только автор может ставить лайк своей карточке
+    const ownerId = req.user?._id;
     const currentCard = await Card.findByIdAndUpdate(
       cardId,
       { $pull: { likes: ownerId } },
