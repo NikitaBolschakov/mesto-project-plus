@@ -1,9 +1,14 @@
+
 import './env';
 import express from 'express';
 import mongoose from 'mongoose';
+import { errors } from 'celebrate';
 import router from './routes/index';
+import { createUserValidation, loginValidation } from './validation/users';
 import { errorHandler } from './middleware/errorHandler';
-import { fakeAuth } from './middleware/fakeAuth';
+import { auth } from './middleware/auth';
+import { login, createUser } from './controllers/users';
+import { requestLogger, errorLogger } from './middleware/logger';
 
 const { PORT = 3000 } = process.env; // Слушаем 3000 порт
 
@@ -12,11 +17,20 @@ const app = express(); // Создать приложение на express
 app.use(express.json()); // Встроенный посредник, разбирающий входящие запросы в объект в формате JSON
 app.use(express.urlencoded({ extended: true })); // Посредник, разбирающий полезную нагрузку строки запроса
 
-app.use(fakeAuth); // Фейковая авторизация
+app.use(requestLogger); // подключаем логер запросов
 
-app.use(router);
+app.post('/signin', loginValidation, login); // роут авторизации
+app.post('/signup', createUserValidation, createUser); // роут регистрации
 
-app.use(errorHandler);
+app.use(auth); // авторизация
+
+app.use(router); //все остальные роуты
+
+app.use(errorLogger); // подключаем логер ошибок
+
+app.use(errors()); // обработчик ошибок celebrate
+
+app.use(errorHandler); // централизованный обработчик ошибок
 
 const connect = async () => {
   try {
