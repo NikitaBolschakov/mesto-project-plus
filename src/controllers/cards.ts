@@ -1,10 +1,9 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Request, Response, Errback } from 'express';
 import { catchError } from '../utils/catchError';
 import { RequestCastom } from '../types';
 import Card from '../models/card';
 import {
   STATUS_201,
-  STATUS_200,
   STATUS_403,
   ERROR_MESSAGE_403,
   MESSAGE_SUCCESS_DELETE,
@@ -18,9 +17,12 @@ export const getCards = async (
 ) => {
   try {
     const cards = await Card.find({}).populate(['owner', 'likes']);
-    return res.status(STATUS_200).send(cards);
+    return res.send({ data: cards });
   } catch (error) {
-    catchError(error, res);
+    //ошибка передается в catchError,
+    //catchError работает как небольшой мидлвар - передает ошибку в next,
+    //а из next через метод класса HandlerError - в централизованный обработчик ошибок
+    catchError(error, next);
   }
 };
 
@@ -34,9 +36,9 @@ export const createCard = async (
     const { name, link } = req.body;
     const owner = req.user?._id;
     const newCard = await Card.create({ name, link, owner });
-    return res.status(STATUS_201).send(newCard);
+    return res.status(STATUS_201).send({ data: newCard });
   } catch (error) {
-    catchError(error, res);
+    catchError(error, next);
   }
 };
 
@@ -54,13 +56,13 @@ export const deleteCard = async (
     const userId = req.user?._id;
 
     if (owner.toString() !== userId) {
-      return res.status(STATUS_403).send(ERROR_MESSAGE_403);
+      return res.status(STATUS_403).send({ message: ERROR_MESSAGE_403 });
     } else {
       await Card.findByIdAndDelete(cardId);
-      return res.status(STATUS_200).send(MESSAGE_SUCCESS_DELETE);
+      return res.send({ message: MESSAGE_SUCCESS_DELETE });
     }
   } catch (error) {
-    catchError(error, res);
+    catchError(error, next);
   }
 };
 
@@ -78,9 +80,9 @@ export const putLike = async (
       { $addToSet: { likes: ownerId } },
       { new: true }
     ).orFail();
-    return res.status(STATUS_200).send(currentCard);
+    return res.send({ data: currentCard });
   } catch (error) {
-    catchError(error, res);
+    catchError(error, next);
   }
 };
 
@@ -98,8 +100,8 @@ export const deleteLike = async (
       { $pull: { likes: ownerId } },
       { new: true }
     ).orFail();
-    return res.status(STATUS_200).send(currentCard);
+    return res.send({ data: currentCard });
   } catch (error) {
-    catchError(error, res);
+    catchError(error, next);
   }
 };

@@ -48,12 +48,10 @@ userSchema.static('findUserByCredentials', async function findUserByCredentials(
   const user = await this.findOne({ email }).select('+password');
   if (!user) {
     return Promise.reject(new Error('Неправильные почта или пароль'));
-    //return HandlerError.auth(ERROR_MESSAGE_401);
   }
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
     return Promise.reject(new Error('Неправильные почта или пароль'));
-    //return HandlerError.auth(ERROR_MESSAGE_401);
   }
   return user;
 });

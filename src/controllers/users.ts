@@ -1,12 +1,17 @@
-import { NextFunction, Request, Response } from 'express';
+import { IUser } from './../types';
+import { NextFunction, Request, Response, Errback } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 import HandlerError from '../errors/errors';
-import { STATUS_200, STATUS_201, ERROR_MESSAGE_401, ERROR_MESSAGE_409 } from '../constants/constants';
+import {
+  STATUS_200,
+  STATUS_201,
+  ERROR_MESSAGE_401,
+  ERROR_MESSAGE_409,
+} from '../constants/constants';
 import User from '../models/user';
 import { catchError } from '../utils/catchError';
 import { RequestCastom } from '../types';
-
 
 // найти всех пользователей
 export const getUsers = async (
@@ -16,9 +21,12 @@ export const getUsers = async (
 ) => {
   try {
     const users = await User.find({});
-    return res.status(STATUS_200).send(users);
+    return res.send({ data: users });
   } catch (error) {
-    catchError(error, res);
+    //ошибка передается в catchError,
+    //catchError работает как небольшой мидлвар - передает ошибку в next,
+    //а из next через метод класса HandlerError - в централизованный обработчик ошибок
+    catchError(error, next);
   }
 };
 
@@ -31,9 +39,9 @@ export const getUser = async (
   try {
     const { userId } = req.params;
     const user = await User.findById(userId).orFail();
-    return res.status(STATUS_200).send(user);
+    return res.send({ data: user });
   } catch (error) {
-    catchError(error, res);
+    catchError(error, next);
   }
 };
 
@@ -47,13 +55,39 @@ export const getUserData = async (
 
   try {
     const user = await User.findById(userId).orFail();
-    return res.status(STATUS_200).send(user);
+    return res.send({ data: user });
   } catch (error) {
-    catchError(error, res);
+    catchError(error, next);
   }
 };
 
-// регистрация пользователя
+/* // регистрация пользователя
+export const createUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { email, password, name, about, avatar } = req.body;
+  bcrypt.hash(password, 10)
+    .then((hash: string) => {
+      const user = User.create({
+        email,
+        password: hash,
+        name,
+        about,
+        avatar,
+      });
+    })
+    .then((user) => res.status(STATUS_201).send({ email: user, name, about, avatar }))
+    .catch((error) => {
+      if (error.code === 11000) {
+        next(HandlerError.conflict(ERROR_MESSAGE_409));
+      } else {
+        catchError(error, next);
+      }
+    });
+}; */
+
 export const createUser = async (
   req: Request,
   res: Response,
@@ -61,27 +95,34 @@ export const createUser = async (
 ) => {
   try {
     const { email, password, name, about, avatar } = req.body;
-    const checkEmail = await User.findOne({ email });
 
-    if (checkEmail) {
-      next(HandlerError.auth(ERROR_MESSAGE_409));
+    const hash = await bcrypt.hash(password, 10);
+    const newUser = await User.create({
+      email,
+      password: hash,
+      name,
+      about,
+      avatar,
+    });
+
+    return res.status(STATUS_201).send({
+      data: {
+        name: newUser.name,
+        about: newUser.about,
+        avatar: newUser.avatar,
+        email: newUser.email,
+      },
+    });
+  } catch (error: any) {
+    if (error.code === 11000) {
+      next(HandlerError.conflict(ERROR_MESSAGE_409));
     } else {
-      const hash = await bcrypt.hash(password, 10);
-      const newUser = await User.create({ email, password: hash, name, about, avatar });
-      return res.status(STATUS_201).send(newUser);
+      catchError(error, next);
     }
-  } catch (error) {
-    catchError(error, res);
   }
 };
 
 // обновить профиль
-/*{
-  "_id": "643f360ac75a4c8c4b97aad0",
-  "name": "Не Иван, а Богдан",
-  "about": "Повар"
-}*/
-
 export const patchUser = async (
   req: RequestCastom,
   res: Response,
@@ -89,24 +130,19 @@ export const patchUser = async (
 ) => {
   try {
     const { name, about } = req.body;
-    const userId = req.user?._id; //кто отправляет запрос, тому и менять данные. поэтому _id из req.body
+    const userId = req.user?._id;
     const updateUser = await User.findByIdAndUpdate(
       userId,
       { name, about },
       { new: true, runValidators: true }
     ).orFail();
-    return res.status(STATUS_200).send(updateUser);
+    return res.send({ data: updateUser });
   } catch (error) {
-    catchError(error, res);
+    catchError(error, next);
   }
 };
 
 // обновить аватар
-/* {
-  "_id": "643f360ac75a4c8c4b97aad0",
-  "avatar": "https://anotheravatar"
-} */
-
 export const patchAvatar = async (
   req: RequestCastom,
   res: Response,
@@ -120,21 +156,27 @@ export const patchAvatar = async (
       { avatar },
       { new: true, runValidators: true }
     ).orFail();
-    return res.status(STATUS_200).send(updateAvatar);
+    return res.send({ data: updateAvatar });
   } catch (error) {
-    catchError(error, res);
+    catchError(error, next);
   }
 };
 
-export const login = async (req: Request, res: Response, next: NextFunction) => {
+export const login = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { email, password } = req.body;
 
   try {
     const user = await User.findUserByCredentials(email, password);
     return res.send({
-      token: jwt.sign({ _id: user._id }, 'super-strong-secret', { expiresIn: '7d' }),
+      token: jwt.sign({ _id: user._id }, 'super-strong-secret', {
+        expiresIn: '7d',
+      }),
     });
   } catch {
-    next(HandlerError.auth(ERROR_MESSAGE_401))
+    next(HandlerError.auth(ERROR_MESSAGE_401));
   }
-}
+};
