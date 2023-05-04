@@ -27,8 +27,6 @@ class HandlerError extends Error {
   static serverError(message: string) {
     return new HandlerError(500, message);
   }
-
-
 }
 
 export default HandlerError;

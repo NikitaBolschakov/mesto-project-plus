@@ -1,21 +1,21 @@
+import { NextFunction } from 'express';
+import mongoose from 'mongoose';
 import {
   ERROR_MESSAGE_500,
   ERROR_MESSAGE_400,
   ERROR_MESSAGE_404,
-  STATUS_400,
-  STATUS_404,
-  STATUS_500,
-} from './../constants/constants';
-import { Response } from 'express';
-import mongoose from 'mongoose';
+} from '../constants/constants';
+import HandlerError from '../errors/errors';
 
-export const catchError = (error: unknown, res: Response) => {
+const catchError = (error: any, next: NextFunction) => {
   if (
-    error instanceof mongoose.Error.CastError || error instanceof mongoose.Error.ValidationError ) {
-    return res.status(STATUS_400).send(ERROR_MESSAGE_400);
+    error instanceof mongoose.Error.CastError || error instanceof mongoose.Error.ValidationError) {
+    next(HandlerError.badRequest(ERROR_MESSAGE_400));
   }
   if (error instanceof mongoose.Error.DocumentNotFoundError) {
-    return res.status(STATUS_404).send(ERROR_MESSAGE_404);
+    next(HandlerError.notFound(ERROR_MESSAGE_404));
   }
-  return res.status(STATUS_500).send(ERROR_MESSAGE_500);
+  next(HandlerError.serverError(ERROR_MESSAGE_500));
 };
+
+export default catchError;

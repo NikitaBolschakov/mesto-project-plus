@@ -1,12 +1,11 @@
-
 import './env';
 import express from 'express';
 import mongoose from 'mongoose';
 import { errors } from 'celebrate';
 import router from './routes/index';
 import { createUserValidation, loginValidation } from './validation/users';
-import { errorHandler } from './middleware/errorHandler';
-import { auth } from './middleware/auth';
+import errorHandler from './middleware/errorHandler';
+import auth from './middleware/auth';
 import { login, createUser } from './controllers/users';
 import { requestLogger, errorLogger } from './middleware/logger';
 
@@ -14,8 +13,10 @@ const { PORT = 3000 } = process.env; // Слушаем 3000 порт
 
 const app = express(); // Создать приложение на express
 
-app.use(express.json()); // Встроенный посредник, разбирающий входящие запросы в объект в формате JSON
-app.use(express.urlencoded({ extended: true })); // Посредник, разбирающий полезную нагрузку строки запроса
+// Посредник, разбирающий входящие запросы в объект в формате JSON
+app.use(express.json());
+// Посредник, разбирающий полезную нагрузку строки запроса
+app.use(express.urlencoded({ extended: true }));
 
 app.use(requestLogger); // подключаем логер запросов
 
@@ -24,7 +25,7 @@ app.post('/signup', createUserValidation, createUser); // роут регист�
 
 app.use(auth); // авторизация
 
-app.use(router); //все остальные роуты
+app.use(router); // все остальные роуты
 
 app.use(errorLogger); // подключаем логер ошибок
 
@@ -32,6 +33,7 @@ app.use(errors()); // обработчик ошибок celebrate
 
 app.use(errorHandler); // централизованный обработчик ошибок
 
+/* eslint-disable no-console */
 const connect = async () => {
   try {
     mongoose.set('strictQuery', false);
@@ -47,5 +49,6 @@ const connect = async () => {
     }
   }
 };
+/* eslint-enable no-console */
 
 connect();
