@@ -1,5 +1,7 @@
-import { NextFunction, Request, Response, Errback } from 'express';
-import { catchError } from '../utils/catchError';
+import {
+  NextFunction, Request, Response,
+} from 'express';
+import catchError from '../utils/catchError';
 import { RequestCastom } from '../types';
 import Card from '../models/card';
 import {
@@ -13,16 +15,16 @@ import {
 export const getCards = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const cards = await Card.find({}).populate(['owner', 'likes']);
     return res.send({ data: cards });
   } catch (error) {
-    //ошибка передается в catchError,
-    //catchError работает как небольшой мидлвар - передает ошибку в next,
-    //а из next через метод класса HandlerError - в централизованный обработчик ошибок
-    catchError(error, next);
+    // ошибка передается в catchError,
+    // catchError работает как небольшой мидлвар - передает ошибку в next,
+    // а из next через метод класса HandlerError - в централизованный обработчик ошибок
+    return catchError(error, next);
   }
 };
 
@@ -30,7 +32,7 @@ export const getCards = async (
 export const createCard = async (
   req: RequestCastom,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { name, link } = req.body;
@@ -38,7 +40,7 @@ export const createCard = async (
     const newCard = await Card.create({ name, link, owner });
     return res.status(STATUS_201).send({ data: newCard });
   } catch (error) {
-    catchError(error, next);
+    return catchError(error, next);
   }
 };
 
@@ -46,7 +48,7 @@ export const createCard = async (
 export const deleteCard = async (
   req: RequestCastom,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { cardId } = req.params;
@@ -57,12 +59,11 @@ export const deleteCard = async (
 
     if (owner.toString() !== userId) {
       return res.status(STATUS_403).send({ message: ERROR_MESSAGE_403 });
-    } else {
-      await Card.findByIdAndDelete(cardId);
-      return res.send({ message: MESSAGE_SUCCESS_DELETE });
     }
+    await Card.findByIdAndDelete(cardId);
+    return res.send({ message: MESSAGE_SUCCESS_DELETE });
   } catch (error) {
-    catchError(error, next);
+    return catchError(error, next);
   }
 };
 
@@ -70,7 +71,7 @@ export const deleteCard = async (
 export const putLike = async (
   req: RequestCastom,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { cardId } = req.params;
@@ -78,11 +79,11 @@ export const putLike = async (
     const currentCard = await Card.findByIdAndUpdate(
       cardId,
       { $addToSet: { likes: ownerId } },
-      { new: true }
+      { new: true },
     ).orFail();
     return res.send({ data: currentCard });
   } catch (error) {
-    catchError(error, next);
+    return catchError(error, next);
   }
 };
 
@@ -90,7 +91,7 @@ export const putLike = async (
 export const deleteLike = async (
   req: RequestCastom,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { cardId } = req.params;
@@ -98,10 +99,10 @@ export const deleteLike = async (
     const currentCard = await Card.findByIdAndUpdate(
       cardId,
       { $pull: { likes: ownerId } },
-      { new: true }
+      { new: true },
     ).orFail();
     return res.send({ data: currentCard });
   } catch (error) {
-    catchError(error, next);
+    return catchError(error, next);
   }
 };

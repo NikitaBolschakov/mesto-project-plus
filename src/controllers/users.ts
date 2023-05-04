@@ -1,32 +1,32 @@
-import { IUser } from './../types';
-import { NextFunction, Request, Response, Errback } from 'express';
+import {
+  NextFunction, Request, Response,
+} from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { RequestCastom } from '../types';
 import HandlerError from '../errors/errors';
 import {
-  STATUS_200,
   STATUS_201,
   ERROR_MESSAGE_401,
   ERROR_MESSAGE_409,
 } from '../constants/constants';
 import User from '../models/user';
-import { catchError } from '../utils/catchError';
-import { RequestCastom } from '../types';
+import catchError from '../utils/catchError';
 
 // найти всех пользователей
 export const getUsers = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const users = await User.find({});
     return res.send({ data: users });
   } catch (error) {
-    //ошибка передается в catchError,
-    //catchError работает как небольшой мидлвар - передает ошибку в next,
-    //а из next через метод класса HandlerError - в централизованный обработчик ошибок
-    catchError(error, next);
+    // ошибка передается в catchError,
+    // catchError работает как небольшой мидлвар - передает ошибку в next,
+    // а из next через метод класса HandlerError - в централизованный обработчик ошибок
+    return catchError(error, next);
   }
 };
 
@@ -34,14 +34,14 @@ export const getUsers = async (
 export const getUser = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { userId } = req.params;
     const user = await User.findById(userId).orFail();
     return res.send({ data: user });
   } catch (error) {
-    catchError(error, next);
+    return catchError(error, next);
   }
 };
 
@@ -49,7 +49,7 @@ export const getUser = async (
 export const getUserData = async (
   req: RequestCastom,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const userId = req.user?._id;
 
@@ -57,7 +57,7 @@ export const getUserData = async (
     const user = await User.findById(userId).orFail();
     return res.send({ data: user });
   } catch (error) {
-    catchError(error, next);
+    return catchError(error, next);
   }
 };
 
@@ -91,10 +91,12 @@ export const createUser = async (
 export const createUser = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const { email, password, name, about, avatar } = req.body;
+    const {
+      email, password, name, about, avatar,
+    } = req.body;
 
     const hash = await bcrypt.hash(password, 10);
     const newUser = await User.create({
@@ -115,10 +117,9 @@ export const createUser = async (
     });
   } catch (error: any) {
     if (error.code === 11000) {
-      next(HandlerError.conflict(ERROR_MESSAGE_409));
-    } else {
-      catchError(error, next);
+      return next(HandlerError.conflict(ERROR_MESSAGE_409));
     }
+    return catchError(error, next);
   }
 };
 
@@ -126,7 +127,7 @@ export const createUser = async (
 export const patchUser = async (
   req: RequestCastom,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { name, about } = req.body;
@@ -134,11 +135,11 @@ export const patchUser = async (
     const updateUser = await User.findByIdAndUpdate(
       userId,
       { name, about },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).orFail();
     return res.send({ data: updateUser });
   } catch (error) {
-    catchError(error, next);
+    return catchError(error, next);
   }
 };
 
@@ -146,7 +147,7 @@ export const patchUser = async (
 export const patchAvatar = async (
   req: RequestCastom,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { avatar } = req.body;
@@ -154,18 +155,18 @@ export const patchAvatar = async (
     const updateAvatar = await User.findByIdAndUpdate(
       userId,
       { avatar },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     ).orFail();
     return res.send({ data: updateAvatar });
   } catch (error) {
-    catchError(error, next);
+    return catchError(error, next);
   }
 };
 
 export const login = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const { email, password } = req.body;
 
@@ -177,6 +178,6 @@ export const login = async (
       }),
     });
   } catch {
-    next(HandlerError.auth(ERROR_MESSAGE_401));
+    return next(HandlerError.auth(ERROR_MESSAGE_401));
   }
 };

@@ -3,9 +3,11 @@ import bcrypt from 'bcryptjs';
 import validator from 'validator';
 import { IUser } from '../types';
 
+/* eslint-disable no-unused-vars */
 interface UserModel extends Model<IUser> {
   findUserByCredentials: (email: string, password: string) => Promise<Document<unknown, any, IUser>>
 }
+/* eslint-enable no-unused-vars */
 
 const userSchema = new mongoose.Schema<IUser>({
   email: {

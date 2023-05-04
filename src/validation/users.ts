@@ -1,5 +1,5 @@
 import { Joi, celebrate } from 'celebrate';
-import { regExp } from '../utils/regular';
+import regExp from '../utils/regular';
 
 export const getUserByIdValidation = celebrate({
   params: Joi.object().keys({
@@ -36,5 +36,3 @@ export const updateAvatarValidation = celebrate({
     avatar: Joi.string().pattern(regExp).required(),
   }),
 });
-
-

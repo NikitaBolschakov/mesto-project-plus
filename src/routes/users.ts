@@ -22,6 +22,6 @@ userRouter.get('/:userId', getUserByIdValidation, getUser); // возвраща�
 
 userRouter.patch('/me', updateUserInfoValidation, patchUser); // обновляет пользователя
 
-userRouter.patch('/me/avatar', updateAvatarValidation, patchAvatar); //обновляет пользователя
+userRouter.patch('/me/avatar', updateAvatarValidation, patchAvatar); // обновляет пользователя
 
 export default userRouter;

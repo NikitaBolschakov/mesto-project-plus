@@ -1,13 +1,13 @@
-export const MESSAGE_SUCCESS_DELETE = 'Успешно удалено'
-export const ERROR_NAME_404 = 'NotFound'
+export const MESSAGE_SUCCESS_DELETE = 'Успешно удалено';
+export const ERROR_NAME_404 = 'NotFound';
 export const ERROR_MESSAGE_404 = 'Не найдены данные по заданному ID';
 export const ERROR_MESSAGE_BAD_ROUTE = 'К сожалению, такой страницы не существует';
 export const ERROR_MESSAGE_500 = 'Ошибка на стороне сервера';
 export const ERROR_MESSAGE_400 = 'Некорректный запрос или ошибка валидации';
 export const ERROR_MESSAGE_401 = 'Неправильные почта или пароль';
 export const ERROR_MESSAGE_403 = 'Нарушение прав доступа';
-export const ERROR_MESSAGE_401_AUTH = 'Необходима авторизация'
-export const ERROR_MESSAGE_409 = 'Пользователь с таким email уже существует'
+export const ERROR_MESSAGE_401_AUTH = 'Необходима авторизация';
+export const ERROR_MESSAGE_409 = 'Пользователь с таким email уже существует';
 export const STATUS_200 = 200;
 export const STATUS_201 = 201;
 export const STATUS_400 = 400;

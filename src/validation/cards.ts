@@ -1,5 +1,5 @@
 import { Joi, celebrate } from 'celebrate';
-import { regExp } from '../utils/regular';
+import regExp from '../utils/regular';
 
 export const getCardValidation = celebrate({
   params: Joi.object().keys({
@@ -13,4 +13,3 @@ export const createCardValidation = celebrate({
     link: Joi.string().required().pattern(regExp),
   }),
 });
-
