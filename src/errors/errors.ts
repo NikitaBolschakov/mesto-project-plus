@@ -16,6 +16,10 @@ class HandlerError extends Error {
     return new HandlerError(401, message);
   }
 
+  static violationOfAccessRights(message: string) {
+    return new HandlerError(403, message);
+  }
+
   static notFound(message: string) {
     return new HandlerError(404, message);
   }

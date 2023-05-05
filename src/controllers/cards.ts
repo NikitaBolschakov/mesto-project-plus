@@ -6,10 +6,10 @@ import { RequestCastom } from '../types';
 import Card from '../models/card';
 import {
   STATUS_201,
-  STATUS_403,
   ERROR_MESSAGE_403,
   MESSAGE_SUCCESS_DELETE,
 } from '../constants/constants';
+import HandlerError from '../errors/errors';
 
 // найти все карточки
 export const getCards = async (
@@ -58,7 +58,7 @@ export const deleteCard = async (
     const userId = req.user?._id;
 
     if (owner.toString() !== userId) {
-      return res.status(STATUS_403).send({ message: ERROR_MESSAGE_403 });
+      return next(HandlerError.violationOfAccessRights(ERROR_MESSAGE_403));
     }
     await Card.findByIdAndDelete(cardId);
     return res.send({ message: MESSAGE_SUCCESS_DELETE });
